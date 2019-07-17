@@ -153,10 +153,10 @@ def extract_tubelets(dname, gpu=-1, redo=False):
 
         print('Time: video {}, K frame {}, Compute Score {}, Detection {}, NMS {}'.format(
                 time.time() - t_video_start,
-                mean(k_frame_times),
-                mean(compute_score_times),
-                mean(detection_times),
-                mean(NMS_times)
+                mean(k_frame_times) if len(k_frame_times) > 0 else 0,
+                mean(compute_score_times) if len(compute_score_times) > 0 else 0,
+                mean(detection_times) if len(detection_times) > 0 else 0,
+                mean(NMS_times) if len(NMS_times) > 0 else 0
             ))
 
 
