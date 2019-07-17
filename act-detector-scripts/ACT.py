@@ -4,6 +4,7 @@ import pickle
 
 import cv2
 import numpy as np
+import time
 
 CAFFE_PYTHON_PATH = os.path.join(os.path.dirname(__file__), "../python")
 sys.path.insert(0, CAFFE_PYTHON_PATH)
@@ -11,6 +12,7 @@ import caffe
 from Dataset import GetDataset
 from ACT_utils import *
 from copy import deepcopy
+from statistics import mean
 
 K = 6
 IMGSIZE = 300
@@ -55,14 +57,21 @@ def extract_tubelets(dname, gpu=-1, redo=False):
 
     vlist = d.test_vlist()
     for iv, v in enumerate(vlist):
+        t_video_start = time.time()
         print("Processing video {:d}/{:d}: {:s}".format( iv+1, len(vlist), v))
         h, w = d.resolution(v)
         
         # network output is normalized between 0,1 ; so we will multiply it by the following array
         resolution_array = np.array([w,h,w,h]*K, dtype=np.float32)
         
+        k_frame_times = []
+        compute_score_times = []
+        detection_times = []
+        NMS_times = []
         # now process each frame
         for i in range(1, 1 + d.nframes(v) - K + 1):
+
+            k_frame_start = time.time()
             outfile = os.path.join(output_dir, d.frame_format(v,i) + ".pkl")
             
             # skip if already computed
@@ -87,8 +96,11 @@ def extract_tubelets(dname, gpu=-1, redo=False):
                 timscale = [np.transpose(im-MEAN, (2, 0, 1))[None, :, :, :] for im in imscalef]
                 kwargs_flo['data_stream' + str(j) + 'flow'] = np.concatenate(timscale, axis=1)
             
+            # ==========================================================
             # compute rgb and flow scores
             # two forward passes: one for the rgb and one for the flow 
+            # ==========================================================
+            compute_score_start = time.time()
             net_rgb.forward(end="mbox_conf_flatten", **kwargs_rgb) # forward of rgb with confidence and regression
             net_flo.forward(end="mbox_conf_flatten", **kwargs_flo) # forward of flow5 with confidence and regression
             
@@ -98,14 +110,22 @@ def extract_tubelets(dname, gpu=-1, redo=False):
             net_rgb.blobs['mbox_conf_flatten'].data[...] = scores
             net_flo.blobs['mbox_conf_flatten'].data[...] = scores
             net_flo.blobs['mbox_loc'].data[...] = net_rgb.blobs['mbox_loc'].data
+            compute_score_times.append(time.time() - compute_score_start)
             
+            # ==========================================================
             # two forward passes, only for the last layer 
             # dets is the detections after per-class NMS and thresholding (stardard)
             # dets_all contains all the scores and regressions for all tubelets 
+            # ==========================================================
+            detection_start = time.time()
             dets = net_rgb.forward(start='detection_out')['detection_out'][0, 0, :, 1:]
             dets_all = net_flo.forward(start='detection_out_full')['detection_out_full'][0, 0, :, 1:]
+            detection_times.append(time.time() - detection_start)
             
+            # ==========================================================
             # parse detections with per-class NMS
+            # ==========================================================
+            nms_start = time.time()
             if dets.shape[0] == 1 and np.all(dets == -1):
                 dets = np.empty((0, dets.shape[1]), dtype=np.float32)
 
@@ -121,6 +141,7 @@ def extract_tubelets(dname, gpu=-1, redo=False):
             dets_all[:, 1:4*K:2] = np.maximum(0, np.minimum(h, dets_all[:, 1:4*K:2]))
             idx = nms_tubelets(np.concatenate((dets_all[:, :4*K], np.max(dets_all[:, 4*K+1:], axis=1)[:, None]), axis=1), 0.7, 300)
             dets_all = dets_all[idx, :]
+            NMS_times.append(time.time() - nms_start)
             
             # save file
             if not os.path.isdir(os.path.dirname(outfile)):
@@ -128,6 +149,15 @@ def extract_tubelets(dname, gpu=-1, redo=False):
 
             with open(outfile, 'wb') as fid:
                 pickle.dump((dets, dets_all), fid)
+            k_frame_times.append(time.time() - k_frame_start)
+
+        print('Time: video {}, K frame {}, Compute Score {}, Detection {}, NMS {}'.format(
+                time.time() - t_video_start,
+                mean(k_frame_times),
+                mean(compute_score_times),
+                mean(detection_times),
+                mean(NMS_times)
+            ))
 
 
 def load_frame_detections(d, vlist, dirname, nms):
