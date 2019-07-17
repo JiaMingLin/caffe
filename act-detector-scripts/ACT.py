@@ -151,7 +151,8 @@ def extract_tubelets(dname, gpu=-1, redo=False):
                 pickle.dump((dets, dets_all), fid)
             k_frame_times.append(time.time() - k_frame_start)
 
-        print('Time: video {}, K frame {}, Compute Score {}, Detection {}, NMS {}'.format(
+        print('Frame Number: {}, Time: video {}, K frame {}, Compute Score {}, Detection {}, NMS {}'.format(
+                d.nframes(v)
                 time.time() - t_video_start,
                 mean(k_frame_times) if len(k_frame_times) > 0 else 0,
                 mean(compute_score_times) if len(compute_score_times) > 0 else 0,
