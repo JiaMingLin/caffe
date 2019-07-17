@@ -70,7 +70,7 @@ batch_samplers = [{
 def random_brightness(imglist, brightness_prob, brightness_delta):
     if random.random() < brightness_prob:
         brig = random.uniform(-brightness_delta, brightness_delta)
-        for i in xrange(len(imglist)):
+        for i in range(len(imglist)):
             imglist[i] += brig
 
     return imglist
@@ -78,7 +78,7 @@ def random_brightness(imglist, brightness_prob, brightness_delta):
 def random_contrast(imglist, contrast_prob, contrast_lower, contrast_upper):
     if random.random() < contrast_prob:
         cont = random.uniform(contrast_lower, contrast_upper)
-        for i in xrange(len(imglist)):
+        for i in range(len(imglist)):
             imglist[i] *= cont
 
     return imglist
@@ -86,7 +86,7 @@ def random_contrast(imglist, contrast_prob, contrast_lower, contrast_upper):
 def random_saturation(imglist, saturation_prob, saturation_lower, saturation_upper):
     if random.random() < saturation_prob:
         satu = random.uniform(saturation_lower, saturation_upper)
-        for i in xrange(len(imglist)):
+        for i in range(len(imglist)):
             hsv = cv2.cvtColor(imglist[i], cv2.COLOR_BGR2HSV)
             hsv[:, :, 1] *= satu
             imglist[i] = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
@@ -96,7 +96,7 @@ def random_saturation(imglist, saturation_prob, saturation_lower, saturation_upp
 def random_hue(imglist, hue_prob, hue_delta):
     if random.random() < hue_prob:
         hue = random.uniform(-hue_delta, hue_delta)
-        for i in xrange(len(imglist)):
+        for i in range(len(imglist)):
             hsv = cv2.cvtColor(imglist[i], cv2.COLOR_BGR2HSV)
             hsv[:, :, 0] += hue
             imglist[i] = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
@@ -132,17 +132,17 @@ def apply_expand(imglist, tubes, expand_param, mean_values=None):
         oh,ow = imglist[0].shape[:2]
         h = int(oh * expand_ratio)
         w = int(ow * expand_ratio)
-        out_imglist = [np.zeros((h, w, 3), dtype=np.float32) for i in xrange(len(imglist))]
+        out_imglist = [np.zeros((h, w, 3), dtype=np.float32) for i in range(len(imglist))]
         h_off = int(np.floor(h - oh))
         w_off = int(np.floor(w - ow))
         if mean_values is not None:
-            for i in xrange(len(imglist)):
+            for i in range(len(imglist)):
                 out_imglist[i] += np.array(mean_values).reshape(1, 1, 3)
-        for i in xrange(len(imglist)):
+        for i in range(len(imglist)):
             out_imglist[i][h_off:h_off+oh, w_off:w_off+ow, :] = imglist[i]
         # project boxes
         for ilabel in tubes:
-            for itube in xrange(len(tubes[ilabel])):
+            for itube in range(len(tubes[ilabel])):
                 out_tubes[ilabel][itube] += np.array([[w_off, h_off, w_off, h_off]], dtype=np.float32)
 
     return out_imglist, out_tubes
@@ -207,7 +207,7 @@ def crop_image(imglist, tubes, batch_samplers):
     crop_cuboid = random.choice(candidate_cuboids)
     x1, y1, x2, y2 = map(int, crop_cuboid.tolist())
 
-    for i in xrange(len(imglist)):
+    for i in range(len(imglist)):
         imglist[i] = imglist[i][y1:y2+1, x1:x2+1, :]
 
     out_tubes = {}
@@ -215,7 +215,7 @@ def crop_image(imglist, tubes, batch_samplers):
     hi = y2 - y1
 
     for ilabel in tubes:
-        for itube in xrange(len(tubes[ilabel])):
+        for itube in range(len(tubes[ilabel])):
             t = tubes[ilabel][itube]
             t -= np.array([[x1, y1, x1, y1]], dtype=np.float32)
 
@@ -248,7 +248,7 @@ def tubelet_in_tube(tube, i, K):
 
 def tubelet_out_tube(tube, i, K): 
     # True if all frames between i and (i + K - 1) are outside of tube
-    return all([not j in tube[:, 0] for j in xrange(i, i + K)])
+    return all([not j in tube[:, 0] for j in range(i, i + K)])
 
 def tubelet_in_out_tubes(tube_list, i, K): 
     # Given a list of tubes: tube_list, return True if  
@@ -266,7 +266,7 @@ def tubelet_has_gt(tube_list, i, K):
 class MultiframesLayer(caffe.Layer):
 
     def shuffle(self): # shuffle the list of possible starting frames
-        self._order = range(self._nseqs)
+        self._order = list(range(self._nseqs))
         if self._shuffle:
             # set seed like that to have exactly the same shuffle even if we restart from a caffemodel
             random.seed(self._rand_seed + self._nshuffles)
@@ -337,7 +337,7 @@ class MultiframesLayer(caffe.Layer):
 
             self._next = iimages
 
-        for i in xrange(K):
+        for i in range(K):
             top[i].reshape(self._batch_size, 3 * self._ninput, self._resize_height, self._resize_width)
 
         top[K].reshape(1, 1, 1, 8)
@@ -352,7 +352,7 @@ class MultiframesLayer(caffe.Layer):
         data = [np.empty((self._batch_size, 3 * self._ninput, self._resize_height, self._resize_width), dtype=np.float32) for ii in range(K)]
 
         alltubes = []
-        for i in xrange(self._batch_size):
+        for i in range(self._batch_size):
             if self._next == self._nseqs:
                 self.shuffle()
 
@@ -371,12 +371,12 @@ class MultiframesLayer(caffe.Layer):
                 images = [im[:, ::-1, :] for im in images]
                 # reverse the x component of the flow
                 if self._flow:
-                    for ii in xrange(K + self._ninput - 1):
+                    for ii in range(K + self._ninput - 1):
                         images[ii][:, :, 2] = 255 - images[ii][:, :, 2]
 
             h, w = d.resolution(v)
             TT = {}
-            for ilabel, tubes in d.gttubes(v).iteritems():
+            for ilabel, tubes in d.gttubes(v).items():
                 for t in tubes:
                     if frame not in t[:, 0]:
                         continue
@@ -407,12 +407,12 @@ class MultiframesLayer(caffe.Layer):
             # resize
             images = [cv2.resize(im, (self._resize_width, self._resize_height), interpolation=cv2.INTER_LINEAR) for im in images]
             for ii in range(K):
-                for iii in xrange(self._ninput):
+                for iii in range(self._ninput):
                     data[ii][i, 3*iii:3*iii + 3, :, :] = np.transpose( images[ii + iii], (2, 0, 1))
 
             idxtube = 0
             for ilabel in TT:
-                for itube in xrange(len(TT[ilabel])):
+                for itube in range(len(TT[ilabel])):
                     for b in TT[ilabel][itube]:
                         alltubes.append([i, ilabel+1, idxtube, b[0]/wi, b[1]/hi, b[2]/wi, b[3]/hi, 0])
                     idxtube += 1
@@ -434,7 +434,7 @@ class MultiframesLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         blobs = self.prepare_blob()
-        for ii in xrange(len(top) - 1):
+        for ii in range(len(top) - 1):
             top[ii].data[...] = blobs[ii].astype(np.float32, copy=False)
         top[len(top) - 1].reshape(*(blobs[len(top) - 1].shape))
         top[len(top) - 1].data[...] = blobs[len(top) - 1].astype(np.float32, copy=False)

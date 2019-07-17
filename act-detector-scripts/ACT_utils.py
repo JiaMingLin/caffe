@@ -91,18 +91,18 @@ def nms_tubelets(dets, overlapThresh=0.3, top_k=None):
 
     pick = []
 
-    K = (dets.shape[1] - 1) / 4
+    K = int((dets.shape[1] - 1) / 4)
 
     # Coordinates of bounding boxes
-    x1 = [dets[:, 4*k] for k in xrange(K)]
-    y1 = [dets[:, 4*k + 1] for k in xrange(K)]
-    x2 = [dets[:, 4*k + 2] for k in xrange(K)]
-    y2 = [dets[:, 4*k + 3] for k in xrange(K)]
+    x1 = [dets[:, 4*k] for k in range(K)]
+    y1 = [dets[:, 4*k + 1] for k in range(K)]
+    x2 = [dets[:, 4*k + 2] for k in range(K)]
+    y2 = [dets[:, 4*k + 3] for k in range(K)]
 
     # Compute the area of the bounding boxes and sort the bounding
     # boxes by the bottom-right y-coordinate of the bounding box
     # area = (x2 - x1 + 1) * (y2 - y1 + 1)
-    area = [(x2[k] - x1[k] + 1) * (y2[k] - y1[k] + 1) for k in xrange(K)]
+    area = [(x2[k] - x1[k] + 1) * (y2[k] - y1[k] + 1) for k in range(K)]
     I = np.argsort(dets[:,-1])
     indices = np.empty(top_k, dtype=np.int32)
     counter = 0
@@ -113,16 +113,16 @@ def nms_tubelets(dets, overlapThresh=0.3, top_k=None):
         counter += 1
 
         # Compute overlap
-        xx1 = [np.maximum(x1[k][i], x1[k][I[:-1]]) for k in xrange(K)]
-        yy1 = [np.maximum(y1[k][i], y1[k][I[:-1]]) for k in xrange(K)]
-        xx2 = [np.minimum(x2[k][i], x2[k][I[:-1]]) for k in xrange(K)]
-        yy2 = [np.minimum(y2[k][i], y2[k][I[:-1]]) for k in xrange(K)]
+        xx1 = [np.maximum(x1[k][i], x1[k][I[:-1]]) for k in range(K)]
+        yy1 = [np.maximum(y1[k][i], y1[k][I[:-1]]) for k in range(K)]
+        xx2 = [np.minimum(x2[k][i], x2[k][I[:-1]]) for k in range(K)]
+        yy2 = [np.minimum(y2[k][i], y2[k][I[:-1]]) for k in range(K)]
 
-        w = [np.maximum(0, xx2[k] - xx1[k] + 1) for k in xrange(K)]
-        h = [np.maximum(0, yy2[k] - yy1[k] + 1) for k in xrange(K)]
+        w = [np.maximum(0, xx2[k] - xx1[k] + 1) for k in range(K)]
+        h = [np.maximum(0, yy2[k] - yy1[k] + 1) for k in range(K)]
 
-        inter_area = [w[k] * h[k] for k in xrange(K)]
-        ious = sum([inter_area[k] / (area[k][I[:-1]] + area[k][i] - inter_area[k]) for k in xrange(K)])
+        inter_area = [w[k] * h[k] for k in range(K)]
+        ious = sum([inter_area[k] / (area[k][I[:-1]] + area[k][i] - inter_area[k]) for k in range(K)])
 
         I = I[np.where(ious <= overlapThresh * K)[0]]
 

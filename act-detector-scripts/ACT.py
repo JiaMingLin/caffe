@@ -1,6 +1,6 @@
 import sys
 import os
-import cPickle as pickle
+import pickle
 
 import cv2
 import numpy as np
@@ -62,7 +62,7 @@ def extract_tubelets(dname, gpu=-1, redo=False):
         resolution_array = np.array([w,h,w,h]*K, dtype=np.float32)
         
         # now process each frame
-        for i in xrange(1, 1 + d.nframes(v) - K + 1):
+        for i in range(1, 1 + d.nframes(v) - K + 1):
             outfile = os.path.join(output_dir, d.frame_format(v,i) + ".pkl")
             
             # skip if already computed
@@ -72,16 +72,16 @@ def extract_tubelets(dname, gpu=-1, redo=False):
             # read the frames for the forward
             kwargs_rgb  = {}
             kwargs_flo = {}
-            for j in xrange(K):
+            for j in range(K):
                 im = cv2.imread(d.imfile(v, i + j))
                 if im is None:
-                    print "Image {:s} does not exist".format(d.imfile(v, i+j))
+                    print("Image {:s} does not exist".format(d.imfile(v, i+j)))
                     return
                 imscale = cv2.resize(im, (IMGSIZE, IMGSIZE), interpolation=cv2.INTER_LINEAR)
                 kwargs_rgb['data_stream' + str(j)] = np.transpose(imscale-MEAN, (2, 0, 1))[None, :, :, :]
-                imf = [cv2.imread(d.flowfile(v, min(d.nframes(v), i + j + iflow))) for iflow in xrange(NFLOWS)]
+                imf = [cv2.imread(d.flowfile(v, min(d.nframes(v), i + j + iflow))) for iflow in range(NFLOWS)]
                 if np.any(imf) is None:
-                    print "Flow image {:s} does not exist".format(d.flowfile(v, i+j))
+                    print("Flow image {:s} does not exist".format(d.flowfile(v, i+j)))
                     return
                 imscalef = [cv2.resize(im, (IMGSIZE, IMGSIZE), interpolation=cv2.INTER_LINEAR) for im in imf]
                 timscale = [np.transpose(im-MEAN, (2, 0, 1))[None, :, :, :] for im in imscalef]
@@ -142,7 +142,7 @@ def load_frame_detections(d, vlist, dirname, nms):
         vdets = {i: np.empty((0,6), dtype=np.float32) for i in range(1, 1 + d.nframes(v))} # x1, y1, x2, y2, score, ilabel
         
         # load results for each starting frame
-        for i in xrange(1, 1 + d.nframes(v) - K + 1):
+        for i in range(1, 1 + d.nframes(v) - K + 1):
             resname = os.path.join(dirname, d.frame_format(v,i) + '.pkl')
             
             if not os.path.isfile(resname):
@@ -155,13 +155,13 @@ def load_frame_detections(d, vlist, dirname, nms):
             if dets.size == 0:
                 continue
 
-            for k in xrange(K):
+            for k in range(K):
                 vdets[i+k] = np.concatenate( (vdets[i+k],dets[:,np.array([2+4*k,3+4*k,4+4*k,5+4*k,1,0])] ), axis=0)
 
         # Perform NMS in each frame
         for i in vdets:
             idx = np.empty((0,), dtype=np.int32)
-            for ilabel in xrange(d.nlabels):
+            for ilabel in range(d.nlabels):
                 a = np.where(vdets[i][:,5] == ilabel)[0]
                 
                 if a.size == 0:
@@ -205,7 +205,7 @@ def frameAP(dname, th=0.5, redo=False):
                     continue
                 
                 for tube in tubes[ilabel]:
-                    for i in xrange(tube.shape[0]):
+                    for i in range(tube.shape[0]):
                         k = (iv, int(tube[i, 0]))
                         if not k in gt:
                             gt[k] = []
@@ -255,7 +255,7 @@ def frameAP(dname, th=0.5, redo=False):
     
     # display results
     ap = 100*np.array([pr_to_ap(res[label]) for label in d.labels])
-    print "frameAP"
+    print("frameAP")
     
     for il, _ in enumerate(d.labels):
         print("{:20s} {:8.2f}".format('', ap[il]))
@@ -293,7 +293,7 @@ def frameAP_error(dname, th=0.5, redo=False):
                 
                 for il in tubes:    
                     for tube in tubes[il]:
-                        for i in xrange(tube.shape[0]):
+                        for i in range(tube.shape[0]):
                             k = (iv, int(tube[i, 0]))
                             if il == ilabel:  
                                 if k not in gt:
@@ -385,15 +385,15 @@ def frameAP_error(dname, th=0.5, redo=False):
     
     LIST = [AP, EL, EC, ET, EO, EM]
 
-    print "Error Analysis"
+    print("Error Analysis")
     
-    print ""
+    print("")
     print("{:20s} {:8s} {:8s} {:8s} {:8s} {:8s} {:8s}".format('label', '   AP   ', '  Loc.  ', '  Cls.  ', '  Time  ', ' Other ', ' missed '))
-    print ""
+    print("")
     for il, label in enumerate(d.labels):
         print("{:20s} ".format(label) + " ".join(["{:8.2f}".format(L[il]) for L in LIST]))
     
-    print ""
+    print("")
     print("{:20s} ".format("mean") + " ".join(["{:8.2f}".format(np.mean(L)) for L in LIST]))
     print("")
 
@@ -417,7 +417,7 @@ def frameMABO(dname, redo=False):
             vdets = {i: np.empty((0,4), dtype=np.float32) for i in range(1, 1+d.nframes(v))}
 
             # load results for each chunk
-            for i in xrange(1, 1 + d.nframes(v) - K + 1):
+            for i in range(1, 1 + d.nframes(v) - K + 1):
                 resname = os.path.join(dirname, d.frame_format(v,i) + '.pkl')
                 if not os.path.isfile(resname):
                     print("ERROR: Missing extracted tubelets " + resname)
@@ -426,11 +426,11 @@ def frameMABO(dname, redo=False):
                 with open(resname, 'rb') as fid:
                     dets, _ = pickle.load(fid)
                 
-                for k in xrange(K):
+                for k in range(K):
                     vdets[i+k] = np.concatenate((vdets[i + k], dets[:, 2+4*k:6+4*k]), axis=0)
             
             # for each frame
-            for i in xrange(1, 1 + d.nframes(v)):
+            for i in range(1, 1 + d.nframes(v)):
                 for ilabel in gt:
                     label = d.labels[ilabel]
                     for t in gt[ilabel]:
@@ -469,14 +469,14 @@ def frameCLASSIF(dname, redo=False):
             CLASSIF = pickle.load(fid)
     else:
         vlist = d.test_vlist()
-        CORRECT = [0 for ilabel in xrange(d.nlabels)]
-        TOTAL   = [0 for ilabel in xrange(d.nlabels)]
+        CORRECT = [0 for ilabel in range(d.nlabels)]
+        TOTAL   = [0 for ilabel in range(d.nlabels)]
         
         for v in vlist:
             nframes = d.nframes(v)
             # load all tubelets
             VDets = {}
-            for startframe in xrange(1, nframes + 2 - K):
+            for startframe in range(1, nframes + 2 - K):
                 resname = os.path.join(dirname, d.frame_format(v, startframe) + '.pkl')
                 
                 if not os.path.isfile(resname):
@@ -490,7 +490,7 @@ def frameCLASSIF(dname, redo=False):
             tubes = d.gttubes(v)
             for ilabel in tubes:
                 for g in tubes[ilabel]:
-                    for i in xrange(g.shape[0]):
+                    for i in range(g.shape[0]):
                         frame = int(g[i, 0])
                         
                         # just in case a tube is longer than the video
@@ -501,7 +501,7 @@ def frameCLASSIF(dname, redo=False):
                         scores = np.zeros((d.nlabels,), dtype=np.float32)
                         
                         # average the score over the 6 frames
-                        for sf in xrange(max(1, frame - K + 1), min(nframes - K + 1, frame) + 1):
+                        for sf in range(max(1, frame - K + 1), min(nframes - K + 1, frame) + 1):
                             overlaps = iou2d(VDets[sf][:, 4*(frame-sf):4*(frame-sf)+4], gtbox)
                             scores += np.sum(VDets[sf][overlaps >= 0.7, 4*K + 1:],axis=0)
                         
@@ -511,7 +511,7 @@ def frameCLASSIF(dname, redo=False):
 
                         TOTAL[ilabel] += 1
         
-        CLASSIF = [float(CORRECT[ilabel]) / float(TOTAL[ilabel]) for ilabel in xrange(d.nlabels)]
+        CLASSIF = [float(CORRECT[ilabel]) / float(TOTAL[ilabel]) for ilabel in range(d.nlabels)]
         
         with open(eval_file, 'wb') as fid:
             pickle.dump(CLASSIF, fid)
@@ -541,7 +541,7 @@ def BuildTubes(dname, redo=False):
         
         # load detected tubelets
         VDets = {}
-        for startframe in xrange(1, nframes + 2 - K):
+        for startframe in range(1, nframes + 2 - K):
             resname = os.path.join(dirname, d.frame_format(v, startframe) + '.pkl')
             
             if not os.path.isfile(resname):
@@ -551,14 +551,14 @@ def BuildTubes(dname, redo=False):
             with open(resname, 'rb') as fid:
                 _, VDets[startframe] = pickle.load(fid)
         
-        for ilabel in xrange(d.nlabels):
+        for ilabel in range(d.nlabels):
             FINISHED_TUBES = []
             CURRENT_TUBES = [] # tubes is a list of tuple (frame, lstubelets)
 
             def tubescore(tt):
-                return np.mean(np.array([tt[i][1][-1] for i in xrange(len(tt))]))
+                return np.mean(np.array([tt[i][1][-1] for i in range(len(tt))]))
 
-            for frame in xrange(1, d.nframes(v) + 2 - K):
+            for frame in range(1, d.nframes(v) + 2 - K):
                 # load boxes of the new frame and do nms while keeping Nkeep highest scored
                 ltubelets = VDets[frame][:,range(4*K) + [4*K + 1 + ilabel]] # Nx(4K+1) with (x1 y1 x2 y2)*K ilabel-score
                 idx = nms_tubelets(ltubelets, 0.3, top_k=10)
@@ -566,7 +566,7 @@ def BuildTubes(dname, redo=False):
                 
                 # just start new tubes
                 if frame == 1:
-                    for i in xrange(ltubelets.shape[0]):
+                    for i in range(ltubelets.shape[0]):
                         CURRENT_TUBES.append( [(1,ltubelets[i,:])] )
                     continue
 
@@ -584,7 +584,7 @@ def BuildTubes(dname, redo=False):
                     offset = frame - last_frame
                     if offset < K:
                         nov = K - offset
-                        ious = sum([iou2d(ltubelets[:, 4*iov:4*iov+4], last_tubelet[4*(iov+offset):4*(iov+offset+1)]) for iov in xrange(nov)])/float(nov)
+                        ious = sum([iou2d(ltubelets[:, 4*iov:4*iov+4], last_tubelet[4*(iov+offset):4*(iov+offset+1)]) for iov in range(nov)])/float(nov)
                     else:
                         ious = iou2d(ltubelets[:, :4], last_tubelet[4*K-4:4*K])
                     
@@ -606,7 +606,7 @@ def BuildTubes(dname, redo=False):
                     del CURRENT_TUBES[it]
                 
                 # start new tubes
-                for i in xrange(ltubelets.shape[0]):
+                for i in range(ltubelets.shape[0]):
                     CURRENT_TUBES.append([(frame,ltubelets[i,:])])
 
             # all tubes are not finished
@@ -633,9 +633,9 @@ def BuildTubes(dname, redo=False):
                 out = np.zeros((length, 6), dtype=np.float32)
                 out[:, 0] = np.arange(beginframe,endframe+1)
                 n_per_frame = np.zeros((length, 1), dtype=np.int32)
-                for i in xrange(len(t)):
+                for i in range(len(t)):
                     frame, box = t[i]
-                    for k in xrange(K):
+                    for k in range(K):
                         out[frame-beginframe+k, 1:5] += box[4*k:4*k+4]
                         out[frame-beginframe+k, -1] += box[-1]
                         n_per_frame[frame-beginframe+k ,0] += 1
@@ -660,7 +660,7 @@ def videoAP(dname, th=0.5, redo=False):
         
         # load detections
         # alldets = for each label in 1..nlabels, list of tuple (v,score,tube as Kx5 array)
-        alldets = {ilabel: [] for ilabel in xrange(d.nlabels)}
+        alldets = {ilabel: [] for ilabel in range(d.nlabels)}
         for v in vlist:
             tubename = os.path.join(dirname, v + '_tubes.pkl')
             if not os.path.isfile(tubename):
@@ -671,14 +671,14 @@ def videoAP(dname, th=0.5, redo=False):
             with open(tubename, 'rb') as fid:
                 tubes = pickle.load(fid)
             
-            for ilabel in xrange(d.nlabels):
+            for ilabel in range(d.nlabels):
                 ltubes = tubes[ilabel]
                 idx = nms3dt(ltubes, 0.3)
                 alldets[ilabel] += [(v,ltubes[i][1], ltubes[i][0]) for i in idx]
         
         # compute AP for each class
         res = {}
-        for ilabel in xrange(d.nlabels):
+        for ilabel in range(d.nlabels):
             detections = alldets[ilabel]
             # load ground-truth
             gt = {}
@@ -732,7 +732,7 @@ def videoAP(dname, th=0.5, redo=False):
 
     # display results
     ap = 100 * np.array([pr_to_ap(res[label]) for label in d.labels])
-    print "frameAP"
+    print("frameAP")
     for il, _ in enumerate(d.labels):
         print("{:20s} {:8.2f}".format('', ap[il]))
 
